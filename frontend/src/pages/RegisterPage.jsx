@@ -1,7 +1,11 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from 'react-router-dom';
 import { Form, Button, Row, Col } from "react-bootstrap";
 import FormContainer from "../components/FormContainer";
+import { useDispatch, useSelector } from 'react-redux';
+import { useRegisterMutation } from '../slices/usersApiSlice';
+import { setCredentials } from '../slices/authSlice';
+import Loader from "../components/Loader";
 
 
 const RegisterPage = () => {
@@ -11,10 +15,36 @@ const RegisterPage = () => {
     const [password, setPassword] = useState("")
     const [confirmPassword, setConfirmPassword] = useState("")
 
+
+    const dispatch = useDispatch();
+    const navigate = useNavigate();
+
+    const { userInfo } = useSelector((state) => state.auth);
+
+    const [register, { isLoading }] = useRegisterMutation();
+
+    useEffect(() => {
+        if (userInfo) {
+            navigate('/');
+        }
+    }, [navigate, userInfo]);
+
+
     const submitHanlder = async (e) => {
         e.preventDefault();
-        console.log("sumbit")
-    }
+
+        if (password !== confirmPassword) {
+            console.log('Passwords do not match');
+        } else {
+            try {
+                const res = await register({ name, email, password }).unwrap();
+                dispatch(setCredentials({ ...res }));
+                navigate('/');
+            } catch (err) {
+                console.log(err?.data?.message || err.error);
+            }
+        }
+    };
     return (
         <FormContainer>
             <h1>Register</h1>
@@ -28,28 +58,33 @@ const RegisterPage = () => {
                 <Form.Group className="my-2" controlId="email">
                     <Form.Label>Enter Email</Form.Label>
                     <Form.Control type="email" placeholder="Enter Email"
-                        value={name} onChange={(e) => setEmail(e.target.value)}>
+                        value={email} onChange={(e) => setEmail(e.target.value)}>
                     </Form.Control>
                 </Form.Group>
                 <Form.Group className="my-2" controlId="password">
                     <Form.Label>Password</Form.Label>
                     <Form.Control type="password" placeholder="Enter Password"
-                        value={name} onChange={(e) => setPassword(e.target.value)}>
+                        value={password} onChange={(e) => setPassword(e.target.value)}>
                     </Form.Control>
                 </Form.Group>
                 <Form.Group className="my-2" controlId="confirmPassword">
                     <Form.Label>Confirm Password</Form.Label>
                     <Form.Control type="password" placeholder="Confirm Password"
-                        value={name} onChange={(e) => setConfirmPassword(e.target.value)}>
+                        value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}>
                     </Form.Control>
                 </Form.Group>
-                <Button type="submit" variant="primary" className="mt-3">Register</Button>
-                <Row className="py-3">
-                    <Col>
-                        Already Registered? <Link to="/register">Login</Link>
-                    </Col>
-                </Row>
+
+                <Button type='submit' variant='primary' className='mt-3'>
+                    Register
+                </Button>
+                {isLoading && <Loader />}
             </Form>
+
+            <Row className='py-3'>
+                <Col>
+                    Already have an account? <Link to={`/login`}>Login</Link>
+                </Col>
+            </Row>
         </FormContainer>
     )
 }
